@@ -141,7 +141,7 @@ export default function ParticipantDashboard() {
         } else if (updatedLottery && updatedLottery.participants) {
           const winners = await selectWinners(lottery.id, updatedLottery.participants, lottery.number_of_winners)
 
-          const isWinner = winners.some((w) => w.user_id === user.id)
+          const isWinner = winners.some((w: { user_id: string }) => w.user_id === user.id)
 
           if (isWinner) {
             setNotification({
