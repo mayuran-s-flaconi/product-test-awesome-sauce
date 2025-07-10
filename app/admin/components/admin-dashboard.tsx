@@ -1,25 +1,33 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Users, Trophy, LogOut, Gift, Link as LinkIcon } from "lucide-react"
-import { supabase, type User, type Lottery } from "@/lib/supabase"
-import ProductSelector from "@/components/product-selector"
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Plus, Users, Trophy, LogOut, Gift, LinkIcon } from "lucide-react";
+import { supabase, type User, type Lottery } from "@/lib/supabase";
+import ProductSelector from "@/components/product-selector";
 
-export default function AdminDashboard() {
-  const [user, setUser] = useState<User | null>(null)
-  const [lotteries, setLotteries] = useState<Lottery[]>([])
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+type AdminDashboardProps = {
+  lotteries: Lottery[];
+};
+export default function AdminDashboard({ lotteries }: AdminDashboardProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [localLotteries, setLotteries] = useState<Lottery[]>(lotteries || []);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [newLottery, setNewLottery] = useState({
     name: "",
     maxParticipants: 10,
@@ -27,61 +35,29 @@ export default function AdminDashboard() {
     productId: "",
     productName: "",
     productImage: "",
-    productUrl: ""
-  })
-  const router = useRouter()
+    productUrl: "",
+  });
+  const router = useRouter();
 
   useEffect(() => {
-    const currentUser = localStorage.getItem("currentUser")
+    const currentUser = localStorage.getItem("currentUser");
     if (currentUser) {
-      const userData = JSON.parse(currentUser)
+      const userData = JSON.parse(currentUser);
       if (userData.user_type !== "admin") {
-        router.push("/")
-        return
+        router.push("/");
+        return;
       }
-      setUser(userData)
-      loadLotteries()
+      setUser(userData);
     } else {
-      router.push("/")
+      router.push("/");
     }
-  }, [router])
-
-  const loadLotteries = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("lotteries")
-        .select(`
-          *,
-          participants:lottery_participants(
-            id,
-            user_id,
-            is_winner,
-            joined_at,
-            users(id, name, username)
-          )
-        `)
-        .order("created_at", { ascending: false })
-
-      if (error) {
-        console.error("Error loading lotteries:", error)
-        setError("Failed to load lotteries")
-        return
-      }
-
-      setLotteries(data || [])
-    } catch (error) {
-      console.error("Error loading lotteries:", error)
-      setError("Failed to load lotteries")
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [router]);
 
   const handleCreateLottery = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
+    e.preventDefault();
+    if (!user) return;
 
-    setError(null)
+    setError(null);
 
     try {
       const { data, error } = await supabase
@@ -94,51 +70,55 @@ export default function AdminDashboard() {
           product_id: newLottery.productId,
           product_name: newLottery.productName,
           product_image: newLottery.productImage,
-          product_url: newLottery.productUrl
+          product_url: newLottery.productUrl,
         })
         .select()
-        .single()
+        .single();
 
       if (error) {
-        console.error("Error creating lottery:", error)
-        setError(`Failed to create lottery: ${error.message}`)
-        return
+        console.error("Error creating lottery:", error);
+        setError(`Failed to create lottery: ${error.message}`);
+        return;
       }
 
       setNewLottery({
-        name: "", 
-        maxParticipants: 10, 
+        name: "",
+        maxParticipants: 10,
         numberOfWinners: 1,
         productId: "",
         productName: "",
         productImage: "",
-        productUrl: ""
-      })
-      setShowCreateForm(false)
-      loadLotteries() // Reload lotteries
+        productUrl: "",
+      });
+      setShowCreateForm(false);
+      // loadLotteries(); // Reload lotteries
+
+      await fetch("/api/lotteries/revalidate");
     } catch (error) {
-      console.error("Error creating lottery:", error)
-      setError("Failed to create lottery. Please try again.")
+      console.error("Error creating lottery:", error);
+      setError("Failed to create lottery. Please try again.");
     }
-  }
+  };
 
   const handleLogout = () => {
-    localStorage.removeItem("currentUser")
-    router.push("/")
-  }
+    localStorage.removeItem("currentUser");
+    router.push("/");
+  };
 
-  if (!user || loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>
-
-  const activeLotteries = lotteries.filter((l) => l.status === "active")
-  const completedLotteries = lotteries.filter((l) => l.status === "completed")
+  const activeLotteries = localLotteries.filter((l) => l.status === "active");
+  const completedLotteries = localLotteries.filter(
+    (l) => l.status === "completed"
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-            <p className="text-gray-600">Welcome back, {user.name}</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Admin Dashboard
+            </h1>
+            {/* <p className="text-gray-600">Welcome back, {user.name}</p> */}
           </div>
           <Button onClick={handleLogout} variant="outline">
             <LogOut className="w-4 h-4 mr-2" />
@@ -155,16 +135,20 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Lotteries</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Total Lotteries
+              </CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{lotteries.length}</div>
+              <div className="text-2xl font-bold">{localLotteries.length}</div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Lotteries</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Active Lotteries
+              </CardTitle>
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -173,11 +157,15 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Completed Lotteries</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Completed Lotteries
+              </CardTitle>
               <Trophy className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{completedLotteries.length}</div>
+              <div className="text-2xl font-bold">
+                {completedLotteries.length}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -194,7 +182,9 @@ export default function AdminDashboard() {
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Create New Lottery</CardTitle>
-              <CardDescription>Set up a new lottery for participants</CardDescription>
+              <CardDescription>
+                Set up a new lottery for participants
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateLottery} className="space-y-4">
@@ -203,7 +193,9 @@ export default function AdminDashboard() {
                   <Input
                     id="name"
                     value={newLottery.name}
-                    onChange={(e) => setNewLottery({ ...newLottery, name: e.target.value })}
+                    onChange={(e) =>
+                      setNewLottery({ ...newLottery, name: e.target.value })
+                    }
                     placeholder="Enter lottery name"
                     required
                   />
@@ -218,7 +210,10 @@ export default function AdminDashboard() {
                       max="100"
                       value={newLottery.maxParticipants}
                       onChange={(e) =>
-                        setNewLottery({ ...newLottery, maxParticipants: Number.parseInt(e.target.value) })
+                        setNewLottery({
+                          ...newLottery,
+                          maxParticipants: Number.parseInt(e.target.value),
+                        })
                       }
                       required
                     />
@@ -232,7 +227,10 @@ export default function AdminDashboard() {
                       max={newLottery.maxParticipants - 1}
                       value={newLottery.numberOfWinners}
                       onChange={(e) =>
-                        setNewLottery({ ...newLottery, numberOfWinners: Number.parseInt(e.target.value) })
+                        setNewLottery({
+                          ...newLottery,
+                          numberOfWinners: Number.parseInt(e.target.value),
+                        })
                       }
                       required
                     />
@@ -243,38 +241,48 @@ export default function AdminDashboard() {
                     <Gift className="w-4 h-4" />
                     <span>Prize Product</span>
                   </Label>
-                  <ProductSelector 
-                    selectedProduct={newLottery.productId ? {
-                      id: newLottery.productId,
-                      name: newLottery.productName,
-                      image: newLottery.productImage,
-                      slug: "",
-                      description: ""
-                    } : null}
+                  <ProductSelector
+                    selectedProduct={
+                      newLottery.productId
+                        ? {
+                            id: newLottery.productId,
+                            name: newLottery.productName,
+                            image: newLottery.productImage,
+                            slug: "",
+                            description: "",
+                          }
+                        : null
+                    }
                     onSelect={(product) => {
                       if (product) {
-                        setNewLottery({ 
-                          ...newLottery, 
+                        setNewLottery({
+                          ...newLottery,
                           productId: product.id,
                           productName: product.name,
                           productImage: product.image || "",
-                          productUrl: product.flaconiUrl ? `https://lite-stage-de.flaconi.de/${product.flaconiUrl}` : ``
-                        })
+                          productUrl: product.flaconiUrl
+                            ? `https://lite-stage-de.flaconi.de/${product.flaconiUrl}`
+                            : ``,
+                        });
                       } else {
-                        setNewLottery({ 
-                          ...newLottery, 
+                        setNewLottery({
+                          ...newLottery,
                           productId: "",
                           productName: "",
                           productImage: "",
-                          productUrl: "" 
-                        })
+                          productUrl: "",
+                        });
                       }
                     }}
                   />
                 </div>
                 <div className="flex space-x-2">
                   <Button type="submit">Create Lottery</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowCreateForm(false)}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -284,18 +292,27 @@ export default function AdminDashboard() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {lotteries.map((lottery) => {
-            const participantCount = lottery.participants?.length || 0
-            const winners = lottery.participants?.filter((p) => p.is_winner) || []
+          {localLotteries.map((lottery) => {
+            const participantCount = lottery.participants?.length || 0;
+            const winners =
+              lottery.participants?.filter((p) => p.is_winner) || [];
 
             return (
               <Card key={lottery.id}>
                 <CardHeader>
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">{lottery.name}</CardTitle>
-                    <Badge variant={lottery.status === "active" ? "default" : "secondary"}>{lottery.status}</Badge>
+                    <Badge
+                      variant={
+                        lottery.status === "active" ? "default" : "secondary"
+                      }
+                    >
+                      {lottery.status}
+                    </Badge>
                   </div>
-                  <CardDescription>Created: {new Date(lottery.created_at).toLocaleDateString()}</CardDescription>
+                  <CardDescription>
+                    Created: {new Date(lottery.created_at).toLocaleDateString()}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
@@ -313,21 +330,28 @@ export default function AdminDashboard() {
                       <div className="space-y-2 mt-3 pt-3 border-t border-gray-100">
                         {lottery.product_image && (
                           <div className="flex justify-center">
-                            <img 
-                              src={lottery.product_image} 
-                              alt={lottery.product_name} 
+                            <img
+                              src={lottery.product_image}
+                              alt={lottery.product_name}
                               className="h-24 object-contain rounded-md"
                             />
                           </div>
                         )}
                         <div className="flex items-center gap-2 text-sm">
                           <Gift className="w-4 h-4 text-gray-500" />
-                          <span className="text-gray-700 truncate">{lottery.product_name}</span>
+                          <span className="text-gray-700 truncate">
+                            {lottery.product_name}
+                          </span>
                         </div>
                         {lottery.product_url && (
                           <div className="flex items-center gap-2 text-sm">
                             <LinkIcon className="w-3 h-3 text-gray-500" />
-                            <a href={lottery.product_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate">
+                            <a
+                              href={lottery.product_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline truncate"
+                            >
                               Product link
                             </a>
                           </div>
@@ -339,7 +363,11 @@ export default function AdminDashboard() {
                         <p className="text-sm font-medium mb-1">Winners:</p>
                         <div className="space-y-1">
                           {winners.map((winner) => (
-                            <Badge key={winner.id} variant="outline" className="text-xs">
+                            <Badge
+                              key={winner.id}
+                              variant="outline"
+                              className="text-xs"
+                            >
                               {winner.users.name}
                             </Badge>
                           ))}
@@ -349,10 +377,10 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       </div>
     </div>
-  )
+  );
 }
