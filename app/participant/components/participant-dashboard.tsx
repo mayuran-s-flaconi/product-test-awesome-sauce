@@ -34,27 +34,21 @@ export default function ParticipantDashboard() {
 
   const loadLotteries = async () => {
     try {
-      const { data, error } = await supabase
-        .from("lotteries")
-        .select(`
-          *,
-          participants:lottery_participants(
-            id,
-            user_id,
-            is_winner,
-            joined_at,
-            users(id, name, username)
-          )
-        `)
-        .order("created_at", { ascending: false })
+      const response = await fetch('/api/lotteries', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (error) {
-        console.error("Error loading lotteries:", error)
-        setError("Failed to load lotteries")
-        return
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(`Failed to load lotteries: ${errorData}`)
       }
 
-      setLotteries(data || [])
+      const lotteries = await response.json();
+
+      setLotteries(lotteries ?? [])
     } catch (error) {
       console.error("Error loading lotteries:", error)
       setError("Failed to load lotteries")
@@ -63,102 +57,25 @@ export default function ParticipantDashboard() {
     }
   }
 
-  const selectWinners = async (lotteryId: string, participants: LotteryParticipant[], numberOfWinners: number) => {
-    try {
-      // Call the serverless function to select winners
-      const response = await fetch('/api/lottery/select-winner', {
+  const handleJoinLottery = async (lottery: Lottery) => {
+    try{
+      if (!user) return
+
+      const response = await fetch('/api/lottery/join', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          lotteryId,
-          numberOfWinners
+          lotteryId: lottery.id,
+          userId: user.id
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error("Error selecting winners:", errorData)
-        return []
+        setError(`Failed to join lottery: ${errorData}`)
       }
-
-      const { winners } = await response.json()
-      return winners
-    } catch (error) {
-      console.error("Error selecting winners:", error)
-      return []
-    }
-  }
-
-  const handleJoinLottery = async (lottery: Lottery) => {
-    if (!user) return
-
-    setError(null)
-
-    // Check if user already joined
-    const alreadyJoined = lottery.participants?.some((p) => p.user_id === user.id)
-    if (alreadyJoined) {
-      setNotification({ type: "error", message: "You have already joined this lottery!" })
-      return
-    }
-
-    try {
-      // Add participant to lottery
-      const { error } = await supabase.from("lottery_participants").insert({
-        lottery_id: lottery.id,
-        user_id: user.id,
-      })
-
-      if (error) {
-        console.error("Error joining lottery:", error)
-        setError(`Failed to join lottery: ${error.message}`)
-        return
-      }
-
-      // Check if lottery is now full
-      const currentParticipants = (lottery.participants?.length || 0) + 1
-
-      if (currentParticipants === lottery.max_participants) {
-        // Reload lottery data to get updated participants
-        const { data: updatedLottery, error: fetchError } = await supabase
-          .from("lotteries")
-          .select(`
-            *,
-            participants:lottery_participants(
-              id,
-              user_id,
-              is_winner,
-              joined_at,
-              users(id, name, username)
-            )
-          `)
-          .eq("id", lottery.id)
-          .single()
-
-        if (fetchError) {
-          console.error("Error fetching updated lottery:", fetchError)
-        } else if (updatedLottery && updatedLottery.participants) {
-          const winners = await selectWinners(lottery.id, updatedLottery.participants, lottery.number_of_winners)
-
-          const isWinner = winners.some((w: { user_id: string }) => w.user_id === user.id)
-
-          if (isWinner) {
-            setNotification({
-              type: "success",
-              message: `Congratulations! You won the ${lottery.name} lottery!`,
-            })
-          } else {
-            setNotification({
-              type: "error",
-              message: `The ${lottery.name} lottery is complete. Unfortunately, you didn't win this time.`,
-            })
-          }
-        }
-      } else {
-        setNotification({ type: "success", message: `Successfully joined ${lottery.name}!` })
-      }
-
       // Reload lotteries to show updated data
       loadLotteries()
     } catch (error) {
