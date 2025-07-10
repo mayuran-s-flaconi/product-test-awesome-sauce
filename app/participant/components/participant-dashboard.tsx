@@ -65,27 +65,25 @@ export default function ParticipantDashboard() {
 
   const selectWinners = async (lotteryId: string, participants: LotteryParticipant[], numberOfWinners: number) => {
     try {
-      // Randomly select winners
-      const shuffled = [...participants].sort(() => Math.random() - 0.5)
-      const winners = shuffled.slice(0, numberOfWinners)
+      // Call the serverless function to select winners
+      const response = await fetch('/api/lottery/select-winner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lotteryId,
+          numberOfWinners
+        }),
+      })
 
-      // Update winners in database
-      for (const winner of winners) {
-        const { error } = await supabase.from("lottery_participants").update({ is_winner: true }).eq("id", winner.id)
-        if (error) {
-          console.error("Error updating winner:", error)
-        }
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error selecting winners:", errorData)
+        return []
       }
 
-      // Update lottery status to completed
-      const { error: lotteryError } = await supabase
-        .from("lotteries")
-        .update({ status: "completed" })
-        .eq("id", lotteryId)
-      if (lotteryError) {
-        console.error("Error updating lottery status:", lotteryError)
-      }
-
+      const { winners } = await response.json()
       return winners
     } catch (error) {
       console.error("Error selecting winners:", error)
