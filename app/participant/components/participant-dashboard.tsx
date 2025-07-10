@@ -34,60 +34,26 @@ export default function ParticipantDashboard() {
 
   const loadLotteries = async () => {
     try {
-      const { data, error } = await supabase
-        .from("lotteries")
-        .select(`
-          *,
-          participants:lottery_participants(
-            id,
-            user_id,
-            is_winner,
-            joined_at,
-            users(id, name, username)
-          )
-        `)
-        .order("created_at", { ascending: false })
+      const response = await fetch('/api/lotteries', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-      if (error) {
-        console.error("Error loading lotteries:", error)
-        setError("Failed to load lotteries")
-        return
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(`Failed to load lotteries: ${errorData}`)
       }
 
-      setLotteries(data || [])
+      const lotteries = await response.json();
+
+      setLotteries(lotteries ?? [])
     } catch (error) {
       console.error("Error loading lotteries:", error)
       setError("Failed to load lotteries")
     } finally {
       setLoading(false)
-    }
-  }
-
-  const selectWinners = async (lotteryId: string, participants: LotteryParticipant[], numberOfWinners: number) => {
-    try {
-      // Call the serverless function to select winners
-      const response = await fetch('/api/lottery/select-winner', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          lotteryId,
-          numberOfWinners
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error selecting winners:", errorData)
-        return []
-      }
-
-      const { winners } = await response.json()
-      return winners
-    } catch (error) {
-      console.error("Error selecting winners:", error)
-      return []
     }
   }
 
