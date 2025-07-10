@@ -18,7 +18,7 @@ export default async function AdminPage() {
     response = await fetch(
       process.env.IS_LOCAL === "true"
         ? "http://localhost:3000/api/lotteries"
-        : `https://${process.env.VERCEL_URL}/api/lotteries`,
+        : `https://v0-product-test-awesome-j0.vercel.app/api/lotteries`,
       {
         next: { tags: ["lotteries"] },
       }
