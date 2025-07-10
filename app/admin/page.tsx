@@ -13,19 +13,19 @@ export const revalidate = 100;
 
 const protocol = process.env.VERCEL_ENV === "development" ? "http" : "https";
 export default async function AdminPage() {
-  // let response: any;
-  // try {
-  //   response = await fetch(
-  //     `${protocol}://${process.env.VERCEL_URL}/api/lotteries`,
-  //     {
-  //       next: { tags: ["lotteries"] },
-  //     }
-  //   );
-  // } catch (error) {
-  //   console.error("Failed to fetch lotteries:", error);
-  // }
+  let response: any;
+  try {
+    response = await fetch(
+      `${protocol}://${process.env.VERCEL_URL}/api/lotteries`,
+      {
+        next: { tags: ["lotteries"] },
+      }
+    );
+  } catch (error) {
+    console.error("Failed to fetch lotteries:", error);
+  }
 
-  // const lotteries: Lottery[] = await response.json();
+  const lotteries: Lottery[] = await response.json();
 
-  return <AdminDashboard lotteries={[] as any} />;
+  return <AdminDashboard lotteries={lotteries as any} />;
 }
