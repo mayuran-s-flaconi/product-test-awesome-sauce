@@ -12,7 +12,7 @@ import { Badge } from "lucide-react";
 export const revalidate = 100;
 
 export default async function AdminPage() {
-  const response = await fetch("http://localhost:3000/api/lotteries", {
+  const response = await fetch(`${process.env.VERCEL_URL}/api/lotteries`, {
     next: { tags: ["lotteries"] },
   });
 
