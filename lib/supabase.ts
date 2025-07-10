@@ -20,6 +20,10 @@ export interface Lottery {
   status: "active" | "completed"
   created_at: string
   participants?: LotteryParticipant[]
+  product_id?: string
+  product_name?: string
+  product_image?: string
+  product_url?: string
 }
 
 export interface LotteryParticipant {

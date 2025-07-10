@@ -10,8 +10,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Plus, Users, Trophy, LogOut } from "lucide-react"
+import { Plus, Users, Trophy, LogOut, Gift, Link as LinkIcon } from "lucide-react"
 import { supabase, type User, type Lottery } from "@/lib/supabase"
+import ProductSelector from "@/components/product-selector"
 
 export default function AdminDashboard() {
   const [user, setUser] = useState<User | null>(null)
@@ -23,6 +24,10 @@ export default function AdminDashboard() {
     name: "",
     maxParticipants: 10,
     numberOfWinners: 1,
+    productId: "",
+    productName: "",
+    productImage: "",
+    productUrl: ""
   })
   const router = useRouter()
 
@@ -86,6 +91,10 @@ export default function AdminDashboard() {
           max_participants: newLottery.maxParticipants,
           number_of_winners: newLottery.numberOfWinners,
           created_by: user.id,
+          product_id: newLottery.productId,
+          product_name: newLottery.productName,
+          product_image: newLottery.productImage,
+          product_url: newLottery.productUrl
         })
         .select()
         .single()
@@ -96,7 +105,15 @@ export default function AdminDashboard() {
         return
       }
 
-      setNewLottery({ name: "", maxParticipants: 10, numberOfWinners: 1 })
+      setNewLottery({
+        name: "", 
+        maxParticipants: 10, 
+        numberOfWinners: 1,
+        productId: "",
+        productName: "",
+        productImage: "",
+        productUrl: ""
+      })
       setShowCreateForm(false)
       loadLotteries() // Reload lotteries
     } catch (error) {
@@ -221,6 +238,40 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    <span>Prize Product</span>
+                  </Label>
+                  <ProductSelector 
+                    selectedProduct={newLottery.productId ? {
+                      id: newLottery.productId,
+                      name: newLottery.productName,
+                      image: newLottery.productImage,
+                      slug: "",
+                      description: ""
+                    } : null}
+                    onSelect={(product) => {
+                      if (product) {
+                        setNewLottery({ 
+                          ...newLottery, 
+                          productId: product.id,
+                          productName: product.name,
+                          productImage: product.image || "",
+                          productUrl: product.flaconiUrl ? `https://lite-stage-de.flaconi.de/${product.flaconiUrl}` : ``
+                        })
+                      } else {
+                        setNewLottery({ 
+                          ...newLottery, 
+                          productId: "",
+                          productName: "",
+                          productImage: "",
+                          productUrl: "" 
+                        })
+                      }
+                    }}
+                  />
+                </div>
                 <div className="flex space-x-2">
                   <Button type="submit">Create Lottery</Button>
                   <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)}>
@@ -258,6 +309,31 @@ export default function AdminDashboard() {
                       <span>Winners:</span>
                       <span>{lottery.number_of_winners}</span>
                     </div>
+                    {lottery.product_name && (
+                      <div className="space-y-2 mt-3 pt-3 border-t border-gray-100">
+                        {lottery.product_image && (
+                          <div className="flex justify-center">
+                            <img 
+                              src={lottery.product_image} 
+                              alt={lottery.product_name} 
+                              className="h-24 object-contain rounded-md"
+                            />
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-sm">
+                          <Gift className="w-4 h-4 text-gray-500" />
+                          <span className="text-gray-700 truncate">{lottery.product_name}</span>
+                        </div>
+                        {lottery.product_url && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <LinkIcon className="w-3 h-3 text-gray-500" />
+                            <a href={lottery.product_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate">
+                              Product link
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {winners.length > 0 && (
                       <div className="mt-3">
                         <p className="text-sm font-medium mb-1">Winners:</p>
