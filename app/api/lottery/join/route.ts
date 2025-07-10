@@ -5,6 +5,9 @@ export async function POST(request: Request) {
     try {
         const { lotteryId, userId } = await request.json()
 
+        const { count: countOfLotteryParticipants } = await supabase.from("lottery_participants").select("*", { count: 'exact' }).eq('lottery_id', lotteryId)
+        console.log({countOfLotteryParticipants});
+
         if (!lotteryId || !userId) {
             return NextResponse.json(
                 { error: 'Missing lotteryId or userId in request body' },
@@ -19,6 +22,7 @@ export async function POST(request: Request) {
             .eq('id', lotteryId)
             .single()
 
+        console.log("Joining lottery:", lotteryId, "for user:", userId)
         if (lotteryError || !lotteryData) {
             console.error('Error fetching lottery:', lotteryError)
             return NextResponse.json(
@@ -49,11 +53,14 @@ export async function POST(request: Request) {
             )
         }
 
-        // Check if lottery is now full
-        const currentParticipants = (lotteryData.participants?.length || 0) + 1
+        // const { data: lotteryParticipants, count } = await supabase.from("lottery_participants").select("*", { count: 'exact' }).eq('lottery_id', lotteryId)
 
+        // Check if lottery is now full
+        const currentParticipants = (countOfLotteryParticipants || 0) + 1
+        console.log(currentParticipants)
+        console.log("Max participants:", lotteryData.max_participants)
         if (currentParticipants === lotteryData.max_participants) {
-            const response = await fetch('/api/lottery/select-winner', {
+            const response = await fetch('https://v0-product-test-awesome-j0.vercel.app/api/lottery/select-winner', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
