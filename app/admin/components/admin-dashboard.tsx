@@ -60,18 +60,19 @@ export default function AdminDashboard({ lotteries }: AdminDashboardProps) {
     setError(null);
 
     try {
+      const lotterNew = {
+        name: newLottery.name,
+        max_participants: newLottery.maxParticipants,
+        number_of_winners: newLottery.numberOfWinners,
+        created_by: user.id,
+        product_id: newLottery.productId,
+        product_name: newLottery.productName,
+        product_image: newLottery.productImage,
+        product_url: newLottery.productUrl,
+      };
       const { data, error } = await supabase
         .from("lotteries")
-        .insert({
-          name: newLottery.name,
-          max_participants: newLottery.maxParticipants,
-          number_of_winners: newLottery.numberOfWinners,
-          created_by: user.id,
-          product_id: newLottery.productId,
-          product_name: newLottery.productName,
-          product_image: newLottery.productImage,
-          product_url: newLottery.productUrl,
-        })
+        .insert(lotterNew)
         .select()
         .single();
 
@@ -91,8 +92,9 @@ export default function AdminDashboard({ lotteries }: AdminDashboardProps) {
         productUrl: "",
       });
       setShowCreateForm(false);
-      // loadLotteries(); // Reload lotteries
 
+      // @ts-expect-error
+      setLotteries((prev) => [{ ...lotterNew, id: Math.random() }, ...prev]);
       await fetch("/api/lotteries/revalidate");
     } catch (error) {
       console.error("Error creating lottery:", error);
