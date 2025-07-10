@@ -1,5 +1,6 @@
 "use client"; // Error boundaries must be Client Components
 
+import Link from "next/link";
 import { useEffect } from "react";
 
 export default function Error({
@@ -42,18 +43,12 @@ export default function Error({
         </h2>
         {/* <p className="text-gray-500 dark:text-gray-400 mb-8">{details}</p> */}
         <div className="flex flex-col space-y-4">
-          <a
+          <Link
             href="/"
             className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
           >
             Go to Homepage
-          </a>
-          <button
-            onClick={() => window.history.back()}
-            className="inline-flex items-center justify-center px-6 py-3 border border-gray-300 dark:border-gray-600 text-base font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out"
-          >
-            Go Back
-          </button>
+          </Link>
         </div>
       </div>
     </div>
